@@ -1,0 +1,1186 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ma Ferme — Gestion Moutons & Chèvres</title>
+<style>
+  :root {
+    color-scheme: light;
+    --surface-1: #fcfcfb;
+    --page: #f9f9f7;
+    --ink-1: #0b0b0b;
+    --ink-2: #52514e;
+    --ink-muted: #898781;
+    --grid: #e1e0d9;
+    --baseline: #c3c2b7;
+    --border: rgba(11,11,11,0.10);
+    --series-1: #2a78d6;   /* ventes */
+    --series-2: #eb6834;   /* dépenses */
+    --series-3: #1baf7a;
+    --good: #0ca30c;
+    --good-text: #006300;
+    --warning: #fab219;
+    --critical: #d03b3b;
+    --accent: #2a78d6;
+    --accent-soft: rgba(42,120,214,0.10);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --surface-1: #1a1a19;
+      --page: #0d0d0d;
+      --ink-1: #ffffff;
+      --ink-2: #c3c2b7;
+      --ink-muted: #898781;
+      --grid: #2c2c2a;
+      --baseline: #383835;
+      --border: rgba(255,255,255,0.10);
+      --series-1: #3987e5;
+      --series-2: #d95926;
+      --series-3: #199e70;
+      --good: #0ca30c;
+      --good-text: #0ca30c;
+      --critical: #d03b3b;
+      --accent: #3987e5;
+      --accent-soft: rgba(57,135,229,0.15);
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--page);
+    color: var(--ink-1);
+    font-size: 15px;
+    line-height: 1.45;
+  }
+  header.app {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    padding: 14px 20px;
+    background: var(--surface-1);
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 40;
+  }
+  header.app h1 { font-size: 18px; font-weight: 700; }
+  header.app .sub { color: var(--ink-muted); font-size: 13px; }
+  header.app .spacer { flex: 1; }
+  nav.tabs {
+    display: flex; gap: 4px; flex-wrap: wrap;
+    padding: 10px 16px 0;
+    background: var(--surface-1);
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 57px; z-index: 39;
+  }
+  nav.tabs button {
+    border: none; background: none; cursor: pointer;
+    font: inherit; font-size: 14px; font-weight: 500;
+    color: var(--ink-2);
+    padding: 8px 12px 10px;
+    border-bottom: 2px solid transparent;
+    border-radius: 6px 6px 0 0;
+  }
+  nav.tabs button:hover { background: var(--accent-soft); }
+  nav.tabs button.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+  main { max-width: 1100px; margin: 0 auto; padding: 20px 16px 60px; }
+  section.tab { display: none; }
+  section.tab.active { display: block; }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 18px; }
+  .card {
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+  }
+  .card .label { font-size: 12.5px; color: var(--ink-muted); font-weight: 500; text-transform: uppercase; letter-spacing: .03em; }
+  .card .value { font-size: 26px; font-weight: 700; margin-top: 2px; }
+  .card .detail { font-size: 13px; color: var(--ink-2); margin-top: 2px; }
+  .card .value.pos { color: var(--good-text); }
+  .card .value.neg { color: var(--critical); }
+
+  .panel {
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px; margin-bottom: 18px;
+  }
+  .panel h2 { font-size: 15px; font-weight: 600; margin-bottom: 10px; }
+  .panel h2 .hint { font-weight: 400; color: var(--ink-muted); font-size: 13px; }
+
+  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+  .toolbar .spacer { flex: 1; }
+
+  button.btn {
+    font: inherit; font-size: 14px; font-weight: 500;
+    padding: 7px 14px; border-radius: 8px; cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--surface-1); color: var(--ink-1);
+  }
+  button.btn:hover { background: var(--accent-soft); }
+  button.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.btn.primary:hover { filter: brightness(1.08); }
+  button.btn.danger { color: var(--critical); border-color: var(--critical); background: none; }
+  button.btn.small { font-size: 12.5px; padding: 3px 9px; border-radius: 6px; }
+
+  table.data { width: 100%; border-collapse: collapse; font-size: 14px; }
+  table.data th {
+    text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .04em;
+    color: var(--ink-muted); font-weight: 600;
+    padding: 8px 10px; border-bottom: 1px solid var(--grid);
+  }
+  table.data td { padding: 8px 10px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  table.data tr:last-child td { border-bottom: none; }
+  table.data td.num, table.data th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .table-wrap { overflow-x: auto; }
+  .empty { color: var(--ink-muted); font-size: 14px; padding: 18px 6px; text-align: center; }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px;
+  }
+  .badge.vivant { background: rgba(12,163,12,0.12); color: var(--good-text); }
+  .badge.vendu  { background: var(--accent-soft); color: var(--accent); }
+  .badge.mort   { background: rgba(208,59,59,0.12); color: var(--critical); }
+  .badge.alerte { background: rgba(250,178,25,0.16); color: #7a5200; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .badge.alerte { color: #fab219; }
+  }
+  .badge.mouton { background: var(--accent-soft); color: var(--accent); }
+  .badge.chevre { background: rgba(235,104,52,0.12); color: var(--series-2); }
+
+  form.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px 12px; align-items: end; }
+  form.grid .full { grid-column: 1 / -1; }
+  label.f { display: block; font-size: 12.5px; font-weight: 600; color: var(--ink-2); margin-bottom: 3px; }
+  input, select, textarea {
+    font: inherit; font-size: 14px; width: 100%;
+    padding: 7px 9px; border-radius: 7px;
+    border: 1px solid var(--baseline);
+    background: var(--surface-1); color: var(--ink-1);
+  }
+  input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: var(--accent); }
+
+  .modal-back {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+    display: none; align-items: flex-start; justify-content: center; z-index: 100;
+    padding: 40px 14px;
+  }
+  .modal-back.open { display: flex; }
+  .modal {
+    background: var(--surface-1); border-radius: 12px; border: 1px solid var(--border);
+    width: 100%; max-width: 620px; max-height: 85vh; overflow-y: auto;
+    padding: 20px;
+  }
+  .modal h3 { font-size: 16px; margin-bottom: 14px; }
+  .modal .actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+
+  .checklist {
+    max-height: 220px; overflow-y: auto; border: 1px solid var(--grid); border-radius: 8px; padding: 6px;
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .checklist label {
+    display: flex; gap: 8px; align-items: center; font-size: 14px;
+    padding: 5px 6px; border-radius: 6px; cursor: pointer;
+  }
+  .checklist label:hover { background: var(--accent-soft); }
+  .checklist input { width: auto; }
+
+  #toast {
+    position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
+    background: var(--ink-1); color: var(--page);
+    padding: 9px 18px; border-radius: 999px; font-size: 14px; font-weight: 500;
+    opacity: 0; pointer-events: none; transition: opacity .25s; z-index: 200;
+    max-width: 90vw; text-align: center;
+  }
+  #toast.show { opacity: 1; }
+
+  .chart-box { position: relative; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--ink-2); margin-bottom: 8px; }
+  .legend .item { display: inline-flex; align-items: center; gap: 6px; }
+  .legend .swatch { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  #chartTip {
+    position: absolute; pointer-events: none; display: none;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+    padding: 8px 10px; font-size: 13px; z-index: 10; min-width: 140px;
+  }
+  #chartTip .t { font-weight: 600; margin-bottom: 4px; }
+  #chartTip .row { display: flex; align-items: center; gap: 6px; justify-content: space-between; }
+  #chartTip .row .k { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); }
+  #chartTip .row .v { font-variant-numeric: tabular-nums; font-weight: 600; }
+  details.tableview { margin-top: 8px; }
+  details.tableview summary { cursor: pointer; font-size: 13px; color: var(--ink-2); }
+
+  .notice {
+    display: flex; gap: 8px; align-items: center;
+    background: rgba(250,178,25,0.12); border: 1px solid rgba(250,178,25,0.4);
+    border-radius: 8px; padding: 8px 12px; font-size: 13.5px; color: var(--ink-2);
+    margin-bottom: 16px;
+  }
+  .muted { color: var(--ink-muted); }
+  .small { font-size: 13px; }
+  h2.section-title { font-size: 17px; margin-bottom: 12px; }
+  .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .filters select, .filters input { width: auto; min-width: 130px; }
+  .total-line { font-size: 14px; font-weight: 600; margin-top: 10px; text-align: right; }
+</style>
+</head>
+<body>
+
+<header class="app">
+  <div>
+    <h1>🐑 Ma Ferme</h1>
+    <div class="sub">Gestion et suivi — moutons & chèvres · FCFA</div>
+  </div>
+  <div class="spacer"></div>
+  <button class="btn" onclick="exportJSON()">⬇ Exporter les données</button>
+</header>
+
+<nav class="tabs" id="tabs">
+  <button data-tab="dash" class="active">Tableau de bord</button>
+  <button data-tab="animaux">Animaux</button>
+  <button data-tab="ventes">Ventes & Achats</button>
+  <button data-tab="stocks">Stocks</button>
+  <button data-tab="depenses">Dépenses</button>
+  <button data-tab="morts">Mortalités</button>
+  <button data-tab="donnees">Données</button>
+</nav>
+
+<main>
+
+<!-- ============ TABLEAU DE BORD ============ -->
+<section class="tab active" id="tab-dash">
+  <div class="notice">💾 Les données vivent dans cette page. Pensez à <strong>&nbsp;exporter&nbsp;</strong> régulièrement (bouton en haut) pour ne rien perdre.</div>
+  <div class="cards" id="dashCards"></div>
+  <div class="panel">
+    <h2>Ventes et dépenses par mois <span class="hint">· 6 derniers mois</span></h2>
+    <div class="legend">
+      <span class="item"><span class="swatch" style="background:var(--series-1)"></span>Ventes</span>
+      <span class="item"><span class="swatch" style="background:var(--series-2)"></span>Dépenses</span>
+    </div>
+    <div class="chart-box">
+      <div id="chart"></div>
+      <div id="chartTip"></div>
+    </div>
+    <details class="tableview"><summary>Voir les valeurs en tableau</summary>
+      <div class="table-wrap"><table class="data" id="chartTable"></table></div>
+    </details>
+  </div>
+  <div class="panel" id="stockAlertPanel"></div>
+  <div class="panel" id="emptyStatePanel" style="display:none">
+    <h2>Bienvenue 👋</h2>
+    <p class="small" style="margin-bottom:10px">Commencez par ajouter vos animaux dans l'onglet <strong>Animaux</strong>, ou chargez des données d'exemple pour découvrir l'application.</p>
+    <button class="btn primary" onclick="loadSample()">Charger des données d'exemple</button>
+  </div>
+</section>
+
+<!-- ============ ANIMAUX ============ -->
+<section class="tab" id="tab-animaux">
+  <h2 class="section-title">Animaux</h2>
+  <div class="toolbar">
+    <button class="btn primary" onclick="openAnimalForm()">+ Ajouter un animal</button>
+    <button class="btn" onclick="openLotForm()">+ Ajouter un lot</button>
+    <div class="spacer"></div>
+  </div>
+  <div class="filters">
+    <select id="fEspece" onchange="renderAnimaux()">
+      <option value="">Toutes espèces</option>
+      <option value="mouton">Moutons</option>
+      <option value="chevre">Chèvres</option>
+    </select>
+    <select id="fStatut" onchange="renderAnimaux()">
+      <option value="vivant">Vivants</option>
+      <option value="">Tous statuts</option>
+      <option value="vendu">Vendus</option>
+      <option value="mort">Morts</option>
+    </select>
+    <select id="fLot" onchange="renderAnimaux()"><option value="">Tous les lots</option></select>
+    <input type="search" id="fSearch" placeholder="Rechercher (ID, race…)" oninput="renderAnimaux()">
+  </div>
+  <div class="panel">
+    <div class="table-wrap">
+      <table class="data" id="tblAnimaux"></table>
+    </div>
+  </div>
+</section>
+
+<!-- ============ VENTES & ACHATS ============ -->
+<section class="tab" id="tab-ventes">
+  <h2 class="section-title">Ventes & Achats d'animaux</h2>
+  <div class="toolbar">
+    <button class="btn primary" onclick="openVenteForm()">+ Enregistrer une vente</button>
+    <button class="btn" onclick="openAchatForm()">+ Enregistrer un achat</button>
+  </div>
+  <div class="cards" id="ventesCards"></div>
+  <div class="panel">
+    <div class="table-wrap"><table class="data" id="tblTrans"></table></div>
+  </div>
+</section>
+
+<!-- ============ STOCKS ============ -->
+<section class="tab" id="tab-stocks">
+  <h2 class="section-title">Stocks <span class="hint muted small">— aliments, médicaments, matériel</span></h2>
+  <div class="toolbar">
+    <button class="btn primary" onclick="openStockForm()">+ Nouvel article</button>
+    <button class="btn" onclick="openMouvementForm()">± Entrée / Sortie de stock</button>
+  </div>
+  <div class="panel">
+    <div class="table-wrap"><table class="data" id="tblStocks"></table></div>
+  </div>
+  <div class="panel">
+    <h2>Derniers mouvements</h2>
+    <div class="table-wrap"><table class="data" id="tblMouvements"></table></div>
+  </div>
+</section>
+
+<!-- ============ DEPENSES ============ -->
+<section class="tab" id="tab-depenses">
+  <h2 class="section-title">Dépenses</h2>
+  <div class="panel">
+    <h2>Nouvelle dépense</h2>
+    <form class="grid" id="formDepense" onsubmit="addDepense(event)">
+      <div><label class="f">Date</label><input type="date" id="dDate" required></div>
+      <div><label class="f">Catégorie</label>
+        <select id="dCat">
+          <option>Alimentation</option><option>Santé / vétérinaire</option>
+          <option>Main d'œuvre</option><option>Transport</option>
+          <option>Équipement</option><option>Eau / électricité</option><option>Autre</option>
+        </select>
+      </div>
+      <div><label class="f">Libellé</label><input id="dLib" placeholder="Ex : sacs de son, vaccin PPR…" required></div>
+      <div><label class="f">Montant (FCFA)</label><input type="number" id="dMontant" min="0" step="1" required></div>
+      <div><button class="btn primary" type="submit">Ajouter</button></div>
+    </form>
+  </div>
+  <div class="filters">
+    <select id="fDepCat" onchange="renderDepenses()"><option value="">Toutes catégories</option></select>
+    <input type="month" id="fDepMois" onchange="renderDepenses()">
+    <button class="btn small" onclick="document.getElementById('fDepMois').value='';renderDepenses()">Effacer le mois</button>
+  </div>
+  <div class="panel">
+    <div class="table-wrap"><table class="data" id="tblDepenses"></table></div>
+    <div class="total-line" id="depTotal"></div>
+  </div>
+</section>
+
+<!-- ============ MORTALITES ============ -->
+<section class="tab" id="tab-morts">
+  <h2 class="section-title">Mortalités</h2>
+  <div class="toolbar">
+    <button class="btn primary" onclick="openMortForm()">+ Déclarer un décès</button>
+  </div>
+  <div class="cards" id="mortCards"></div>
+  <div class="panel">
+    <div class="table-wrap"><table class="data" id="tblMorts"></table></div>
+  </div>
+</section>
+
+<!-- ============ DONNEES ============ -->
+<section class="tab" id="tab-donnees">
+  <h2 class="section-title">Données</h2>
+  <div class="panel">
+    <h2>Sauvegarde</h2>
+    <p class="small" style="margin-bottom:10px">Exportez un fichier de sauvegarde complet (JSON). Pour reprendre votre travail, ré-importez ce fichier à la prochaine ouverture.</p>
+    <div class="toolbar">
+      <button class="btn primary" onclick="exportJSON()">⬇ Exporter la sauvegarde (JSON)</button>
+      <label class="btn" style="display:inline-block;cursor:pointer">⬆ Importer une sauvegarde
+        <input type="file" accept=".json,application/json" style="display:none" onchange="importJSON(event)">
+      </label>
+    </div>
+  </div>
+  <div class="panel">
+    <h2>Exports CSV <span class="hint">· pour Excel</span></h2>
+    <div class="toolbar">
+      <button class="btn" onclick="exportCSV('animaux')">Animaux</button>
+      <button class="btn" onclick="exportCSV('transactions')">Ventes & achats</button>
+      <button class="btn" onclick="exportCSV('depenses')">Dépenses</button>
+      <button class="btn" onclick="exportCSV('stocks')">Stocks</button>
+      <button class="btn" onclick="exportCSV('morts')">Mortalités</button>
+    </div>
+  </div>
+  <div class="panel">
+    <h2>Zone dangereuse</h2>
+    <div class="toolbar">
+      <button class="btn" onclick="loadSample()">Charger des données d'exemple</button>
+      <button class="btn danger" onclick="resetAll()">🗑 Tout effacer</button>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<div class="modal-back" id="modalBack" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modalContent"></div>
+</div>
+<div id="toast"></div>
+
+<script>
+'use strict';
+/* =================== ÉTAT =================== */
+let db = {
+  version: 1,
+  animaux: [],        // {id, espece, sexe, race, dateNaissance, poids, lot, origine, prixAchat, dateEntree, statut, dateSortie, notes}
+  transactions: [],   // {id, type: 'vente'|'achat', date, animalIds:[], montant, contrepartie, notes}
+  depenses: [],       // {id, date, categorie, libelle, montant}
+  stocks: [],         // {id, nom, categorie, unite, quantite, seuil}
+  mouvements: [],     // {id, stockId, type:'entree'|'sortie', quantite, date, note}
+  morts: []           // {id, animalId, date, cause, note}
+};
+let seq = 1;
+const uid = () => 'x' + (seq++) + '_' + db.animaux.length + db.transactions.length + db.depenses.length + db.stocks.length + db.morts.length + db.mouvements.length;
+
+const fmtN = new Intl.NumberFormat('fr-FR');
+const F = n => fmtN.format(Math.round(n || 0)) + ' FCFA';
+const todayISO = () => { const d = new Date(); return d.toISOString().slice(0,10); };
+const fmtDate = iso => { if(!iso) return '—'; const [y,m,d] = iso.split('-'); return d + '/' + m + '/' + y; };
+const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const especeLabel = e => e === 'mouton' ? 'Mouton' : 'Chèvre';
+const sexeLabel = s => s === 'M' ? 'Mâle' : 'Femelle';
+
+function ageTexte(a) {
+  if (!a.dateNaissance) return '—';
+  const ref = (a.statut === 'vivant') ? new Date() : new Date((a.dateSortie || todayISO()) + 'T00:00:00');
+  const n = new Date(a.dateNaissance + 'T00:00:00');
+  let mois = (ref.getFullYear() - n.getFullYear()) * 12 + (ref.getMonth() - n.getMonth());
+  if (mois < 0) mois = 0;
+  if (mois < 24) return mois + ' mois';
+  return Math.floor(mois / 12) + ' ans ' + (mois % 12 ? (mois % 12) + ' m' : '');
+}
+
+function nextTag(espece) {
+  const pref = espece === 'mouton' ? 'M' : 'C';
+  let max = 0;
+  db.animaux.forEach(a => {
+    const m = /^([MC])-(\d+)$/.exec(a.id);
+    if (m && m[1] === pref) max = Math.max(max, parseInt(m[2], 10));
+  });
+  return pref + '-' + String(max + 1).padStart(3, '0');
+}
+
+/* =================== NAVIGATION =================== */
+document.getElementById('tabs').addEventListener('click', e => {
+  const b = e.target.closest('button[data-tab]');
+  if (!b) return;
+  document.querySelectorAll('nav.tabs button').forEach(x => x.classList.toggle('active', x === b));
+  document.querySelectorAll('section.tab').forEach(s => s.classList.toggle('active', s.id === 'tab-' + b.dataset.tab));
+  renderAll();
+});
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._h);
+  t._h = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+/* =================== MODAL =================== */
+function openModal(html) {
+  document.getElementById('modalContent').innerHTML = html;
+  document.getElementById('modalBack').classList.add('open');
+}
+function closeModal() { document.getElementById('modalBack').classList.remove('open'); }
+
+/* =================== ANIMAUX =================== */
+function openAnimalForm(editId) {
+  const a = editId ? db.animaux.find(x => x.id === editId) : null;
+  openModal(`
+    <h3>${a ? 'Modifier ' + esc(a.id) : 'Ajouter un animal'}</h3>
+    <form class="grid" onsubmit="saveAnimal(event, ${a ? `'${esc(a.id)}'` : 'null'})">
+      <div><label class="f">Espèce</label>
+        <select id="aEspece" ${a ? 'disabled' : ''}>
+          <option value="mouton" ${a && a.espece==='mouton' ? 'selected':''}>Mouton</option>
+          <option value="chevre" ${a && a.espece==='chevre' ? 'selected':''}>Chèvre</option>
+        </select></div>
+      <div><label class="f">Identifiant / boucle</label><input id="aId" value="${a ? esc(a.id) : ''}" placeholder="auto si vide" ${a ? 'disabled' : ''}></div>
+      <div><label class="f">Sexe</label>
+        <select id="aSexe"><option value="F" ${a && a.sexe==='F'?'selected':''}>Femelle</option><option value="M" ${a && a.sexe==='M'?'selected':''}>Mâle</option></select></div>
+      <div><label class="f">Race</label><input id="aRace" value="${a ? esc(a.race||'') : ''}" placeholder="Ex : Djallonké, Sahélienne…"></div>
+      <div><label class="f">Date de naissance</label><input type="date" id="aNaiss" value="${a ? (a.dateNaissance||'') : ''}"></div>
+      <div><label class="f">Poids (kg)</label><input type="number" step="0.1" min="0" id="aPoids" value="${a && a.poids != null ? a.poids : ''}"></div>
+      <div><label class="f">Lot</label><input id="aLot" value="${a ? esc(a.lot||'') : ''}" placeholder="Ex : Lot 2026-A"></div>
+      <div><label class="f">Origine</label>
+        <select id="aOrigine"><option value="naissance" ${a && a.origine==='naissance'?'selected':''}>Naissance à la ferme</option><option value="achat" ${a && a.origine==='achat'?'selected':''}>Achat</option></select></div>
+      <div><label class="f">Prix d'achat (FCFA)</label><input type="number" min="0" step="1" id="aPrix" value="${a && a.prixAchat ? a.prixAchat : ''}"></div>
+      <div><label class="f">Date d'entrée</label><input type="date" id="aEntree" value="${a ? (a.dateEntree || '') : todayISO()}"></div>
+      <div class="full"><label class="f">Notes</label><input id="aNotes" value="${a ? esc(a.notes||'') : ''}"></div>
+      <div class="full actions" style="display:flex;gap:8px;justify-content:flex-end">
+        <button type="button" class="btn" onclick="closeModal()">Annuler</button>
+        <button type="submit" class="btn primary">${a ? 'Enregistrer' : 'Ajouter'}</button>
+      </div>
+    </form>`);
+}
+
+function saveAnimal(e, editId) {
+  e.preventDefault();
+  const g = id => document.getElementById(id);
+  if (editId) {
+    const a = db.animaux.find(x => x.id === editId);
+    Object.assign(a, {
+      sexe: g('aSexe').value, race: g('aRace').value.trim(),
+      dateNaissance: g('aNaiss').value || null,
+      poids: g('aPoids').value ? parseFloat(g('aPoids').value) : null,
+      lot: g('aLot').value.trim(), origine: g('aOrigine').value,
+      prixAchat: g('aPrix').value ? parseInt(g('aPrix').value, 10) : 0,
+      dateEntree: g('aEntree').value || null, notes: g('aNotes').value.trim()
+    });
+    toast('Animal ' + a.id + ' modifié');
+  } else {
+    const espece = g('aEspece').value;
+    let id = g('aId').value.trim() || nextTag(espece);
+    if (db.animaux.some(x => x.id === id)) { alert('Cet identifiant existe déjà : ' + id); return; }
+    const prix = g('aPrix').value ? parseInt(g('aPrix').value, 10) : 0;
+    const origine = g('aOrigine').value;
+    const dateEntree = g('aEntree').value || todayISO();
+    db.animaux.push({
+      id, espece, sexe: g('aSexe').value, race: g('aRace').value.trim(),
+      dateNaissance: g('aNaiss').value || null,
+      poids: g('aPoids').value ? parseFloat(g('aPoids').value) : null,
+      lot: g('aLot').value.trim(), origine, prixAchat: prix,
+      dateEntree, statut: 'vivant', dateSortie: null, notes: g('aNotes').value.trim()
+    });
+    if (origine === 'achat' && prix > 0) {
+      db.transactions.push({ id: uid(), type: 'achat', date: dateEntree, animalIds: [id], montant: prix, contrepartie: '', notes: 'Achat ' + id });
+    }
+    toast('Animal ' + id + ' ajouté');
+  }
+  closeModal(); renderAll();
+}
+
+function openLotForm() {
+  openModal(`
+    <h3>Ajouter un lot d'animaux</h3>
+    <p class="small muted" style="margin-bottom:10px">Crée une fiche par animal, avec des identifiants automatiques (M-001, C-001…).</p>
+    <form class="grid" onsubmit="saveLot(event)">
+      <div><label class="f">Espèce</label>
+        <select id="lEspece"><option value="mouton">Moutons</option><option value="chevre">Chèvres</option></select></div>
+      <div><label class="f">Nombre de femelles</label><input type="number" id="lNbF" min="0" value="0"></div>
+      <div><label class="f">Nombre de mâles</label><input type="number" id="lNbM" min="0" value="0"></div>
+      <div><label class="f">Nom du lot</label><input id="lLot" placeholder="Ex : Lot Tabaski 2026"></div>
+      <div><label class="f">Origine</label>
+        <select id="lOrigine"><option value="achat">Achat</option><option value="naissance">Naissance à la ferme</option></select></div>
+      <div><label class="f">Prix total (FCFA)</label><input type="number" id="lPrix" min="0" step="1" placeholder="si achat"></div>
+      <div><label class="f">Date d'entrée</label><input type="date" id="lDate" value="${todayISO()}"></div>
+      <div><label class="f">Race</label><input id="lRace"></div>
+      <div class="full actions" style="display:flex;gap:8px;justify-content:flex-end">
+        <button type="button" class="btn" onclick="closeModal()">Annuler</button>
+        <button type="submit" class="btn primary">Créer le lot</button>
+      </div>
+    </form>`);
+}
+
+function saveLot(e) {
+  e.preventDefault();
+  const g = id => document.getElementById(id);
+  const espece = g('lEspece').value;
+  const nbF = parseInt(g('lNbF').value || '0', 10), nbM = parseInt(g('lNbM').value || '0', 10);
+  const n = nbF + nbM;
+  if (n <= 0) { alert('Indiquez au moins un animal.'); return; }
+  const lot = g('lLot').value.trim(), origine = g('lOrigine').value;
+  const prixTotal = parseInt(g('lPrix').value || '0', 10);
+  const prixUnit = n > 0 ? Math.round(prixTotal / n) : 0;
+  const date = g('lDate').value || todayISO();
+  const race = g('lRace').value.trim();
+  const ids = [];
+  for (let i = 0; i < n; i++) {
+    const id = nextTag(espece);
+    ids.push(id);
+    db.animaux.push({
+      id, espece, sexe: i < nbF ? 'F' : 'M', race, dateNaissance: null, poids: null,
+      lot, origine, prixAchat: origine === 'achat' ? prixUnit : 0,
+      dateEntree: date, statut: 'vivant', dateSortie: null, notes: ''
+    });
+  }
+  if (origine === 'achat' && prixTotal > 0) {
+    db.transactions.push({ id: uid(), type: 'achat', date, animalIds: ids, montant: prixTotal, contrepartie: '', notes: 'Achat lot ' + (lot || n + ' ' + especeLabel(espece).toLowerCase() + 's') });
+  }
+  toast(n + ' animaux ajoutés' + (lot ? ' au lot « ' + lot + ' »' : ''));
+  closeModal(); renderAll();
+}
+
+function ficheAnimal(id) {
+  const a = db.animaux.find(x => x.id === id);
+  if (!a) return;
+  const trans = db.transactions.filter(t => (t.animalIds || []).includes(id));
+  const mort = db.morts.find(m => m.animalId === id);
+  let hist = '';
+  trans.forEach(t => { hist += `<tr><td>${fmtDate(t.date)}</td><td>${t.type === 'vente' ? 'Vente' : 'Achat'}</td><td>${esc(t.notes || t.contrepartie || '')}</td><td class="num">${F(t.montant / Math.max(1,(t.animalIds||[]).length))}</td></tr>`; });
+  if (mort) hist += `<tr><td>${fmtDate(mort.date)}</td><td>Décès</td><td>${esc(mort.cause)}${mort.note ? ' — ' + esc(mort.note) : ''}</td><td class="num">—</td></tr>`;
+  openModal(`
+    <h3>${esc(a.id)} · ${especeLabel(a.espece)} ${statutBadge(a.statut)}</h3>
+    <div class="table-wrap"><table class="data">
+      <tr><td class="muted">Sexe</td><td>${sexeLabel(a.sexe)}</td><td class="muted">Race</td><td>${esc(a.race) || '—'}</td></tr>
+      <tr><td class="muted">Âge</td><td>${ageTexte(a)}</td><td class="muted">Poids</td><td>${a.poids != null ? a.poids + ' kg' : '—'}</td></tr>
+      <tr><td class="muted">Lot</td><td>${esc(a.lot) || '—'}</td><td class="muted">Origine</td><td>${a.origine === 'achat' ? 'Achat' : 'Naissance'}</td></tr>
+      <tr><td class="muted">Entrée</td><td>${fmtDate(a.dateEntree)}</td><td class="muted">Prix d'achat</td><td>${a.prixAchat ? F(a.prixAchat) : '—'}</td></tr>
+      ${a.notes ? `<tr><td class="muted">Notes</td><td colspan="3">${esc(a.notes)}</td></tr>` : ''}
+    </table></div>
+    ${hist ? `<h3 style="margin-top:14px;font-size:14px">Historique</h3><div class="table-wrap"><table class="data"><tr><th>Date</th><th>Événement</th><th>Détail</th><th class="num">Montant (part)</th></tr>${hist}</table></div>` : ''}
+    <div class="actions">
+      <button class="btn" onclick="closeModal()">Fermer</button>
+      <button class="btn" onclick="openAnimalForm('${esc(a.id)}')">Modifier</button>
+      ${a.statut === 'vivant' ? `<button class="btn primary" onclick="openVenteForm('${esc(a.id)}')">Vendre</button>
+      <button class="btn danger" onclick="openMortForm('${esc(a.id)}')">Déclarer décès</button>` : ''}
+    </div>`);
+}
+
+function statutBadge(s) {
+  const l = { vivant: 'Vivant', vendu: 'Vendu', mort: 'Mort' }[s] || s;
+  return `<span class="badge ${s}">${l}</span>`;
+}
+
+function renderAnimaux() {
+  const fe = document.getElementById('fEspece').value;
+  const fs = document.getElementById('fStatut').value;
+  const fl = document.getElementById('fLot').value;
+  const q = document.getElementById('fSearch').value.toLowerCase().trim();
+
+  const lots = [...new Set(db.animaux.map(a => a.lot).filter(Boolean))].sort();
+  const selLot = document.getElementById('fLot');
+  const cur = selLot.value;
+  selLot.innerHTML = '<option value="">Tous les lots</option>' + lots.map(l => `<option ${l===cur?'selected':''} value="${esc(l)}">${esc(l)}</option>`).join('');
+
+  let list = db.animaux.filter(a =>
+    (!fe || a.espece === fe) && (!fs || a.statut === fs) && (!fl || a.lot === fl) &&
+    (!q || a.id.toLowerCase().includes(q) || (a.race||'').toLowerCase().includes(q) || (a.lot||'').toLowerCase().includes(q))
+  );
+  const t = document.getElementById('tblAnimaux');
+  if (!list.length) { t.innerHTML = `<tr><td class="empty">Aucun animal ne correspond.</td></tr>`; return; }
+  let rows = list.map(a => `
+    <tr>
+      <td><a href="#" onclick="ficheAnimal('${esc(a.id)}');return false" style="color:var(--accent);font-weight:600;text-decoration:none">${esc(a.id)}</a></td>
+      <td><span class="badge ${a.espece}">${especeLabel(a.espece)}</span></td>
+      <td>${sexeLabel(a.sexe)}</td>
+      <td>${ageTexte(a)}</td>
+      <td>${esc(a.lot) || '—'}</td>
+      <td>${statutBadge(a.statut)}</td>
+      <td>
+        ${a.statut === 'vivant' ? `<button class="btn small" onclick="openVenteForm('${esc(a.id)}')">Vendre</button>
+        <button class="btn small" onclick="openMortForm('${esc(a.id)}')">Décès</button>` : ''}
+      </td>
+    </tr>`).join('');
+  t.innerHTML = `<tr><th>ID</th><th>Espèce</th><th>Sexe</th><th>Âge</th><th>Lot</th><th>Statut</th><th>Actions</th></tr>` + rows;
+}
+
+/* =================== VENTES & ACHATS =================== */
+function vivants() { return db.animaux.filter(a => a.statut === 'vivant'); }
+
+function openVenteForm(preselect) {
+  const v = vivants();
+  if (!v.length) { toast('Aucun animal vivant à vendre.'); return; }
+  const checks = v.map(a => `
+    <label><input type="checkbox" name="vAnimal" value="${esc(a.id)}" ${a.id === preselect ? 'checked' : ''}>
+    ${esc(a.id)} · ${especeLabel(a.espece)} ${a.sexe} ${a.lot ? '· ' + esc(a.lot) : ''}</label>`).join('');
+  openModal(`
+    <h3>Enregistrer une vente</h3>
+    <form onsubmit="saveVente(event)">
+      <label class="f">Animaux vendus</label>
+      <div class="checklist">${checks}</div>
+      <div class="grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px 12px;margin-top:10px">
+        <div><label class="f">Montant total (FCFA)</label><input type="number" id="vMontant" min="0" step="1" required></div>
+        <div><label class="f">Date</label><input type="date" id="vDate" value="${todayISO()}" required></div>
+        <div><label class="f">Acheteur</label><input id="vAcheteur" placeholder="nom / téléphone"></div>
+        <div><label class="f">Note</label><input id="vNote" placeholder="Ex : marché de Tabaski"></div>
+      </div>
+      <div class="actions" style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+        <button type="button" class="btn" onclick="closeModal()">Annuler</button>
+        <button type="submit" class="btn primary">Enregistrer la vente</button>
+      </div>
+    </form>`);
+}
+
+function saveVente(e) {
+  e.preventDefault();
+  const ids = [...document.querySelectorAll('input[name="vAnimal"]:checked')].map(c => c.value);
+  if (!ids.length) { alert('Sélectionnez au moins un animal.'); return; }
+  const montant = parseInt(document.getElementById('vMontant').value || '0', 10);
+  const date = document.getElementById('vDate').value;
+  const acheteur = document.getElementById('vAcheteur').value.trim();
+  const note = document.getElementById('vNote').value.trim();
+  db.transactions.push({ id: uid(), type: 'vente', date, animalIds: ids, montant, contrepartie: acheteur, notes: note });
+  ids.forEach(id => { const a = db.animaux.find(x => x.id === id); if (a) { a.statut = 'vendu'; a.dateSortie = date; } });
+  toast('Vente de ' + ids.length + ' animal(aux) — ' + F(montant));
+  closeModal(); renderAll();
+}
+
+function openAchatForm() { openLotForm(); }
+
+function renderVentes() {
+  const ventes = db.transactions.filter(t => t.type === 'vente');
+  const achats = db.transactions.filter(t => t.type === 'achat');
+  const sV = ventes.reduce((s, t) => s + t.montant, 0);
+  const sA = achats.reduce((s, t) => s + t.montant, 0);
+  document.getElementById('ventesCards').innerHTML = `
+    <div class="card"><div class="label">Total ventes</div><div class="value pos">${F(sV)}</div><div class="detail">${ventes.length} vente(s) · ${ventes.reduce((s,t)=>s+(t.animalIds||[]).length,0)} animaux</div></div>
+    <div class="card"><div class="label">Total achats d'animaux</div><div class="value">${F(sA)}</div><div class="detail">${achats.reduce((s,t)=>s+(t.animalIds||[]).length,0)} animaux achetés</div></div>
+    <div class="card"><div class="label">Marge ventes − achats</div><div class="value ${sV - sA >= 0 ? 'pos' : 'neg'}">${F(sV - sA)}</div><div class="detail">hors dépenses d'exploitation</div></div>`;
+  const t = document.getElementById('tblTrans');
+  const list = [...db.transactions].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  if (!list.length) { t.innerHTML = `<tr><td class="empty">Aucune transaction pour l'instant.</td></tr>`; return; }
+  t.innerHTML = `<tr><th>Date</th><th>Type</th><th>Animaux</th><th>Contrepartie</th><th>Note</th><th class="num">Montant</th><th></th></tr>` +
+    list.map(tr => `
+      <tr>
+        <td>${fmtDate(tr.date)}</td>
+        <td>${tr.type === 'vente' ? '<span class="badge vendu">Vente</span>' : '<span class="badge chevre">Achat</span>'}</td>
+        <td>${(tr.animalIds || []).map(esc).join(', ') || '—'}</td>
+        <td>${esc(tr.contrepartie) || '—'}</td>
+        <td>${esc(tr.notes) || '—'}</td>
+        <td class="num" style="font-weight:600">${tr.type === 'vente' ? '+' : '−'} ${F(tr.montant)}</td>
+        <td><button class="btn small danger" onclick="delTrans('${tr.id}')">✕</button></td>
+      </tr>`).join('');
+}
+
+function delTrans(id) {
+  const t = db.transactions.find(x => x.id === id);
+  if (!t) return;
+  if (!confirm('Supprimer cette transaction ? Les statuts des animaux liés seront rétablis.')) return;
+  if (t.type === 'vente') (t.animalIds || []).forEach(aid => { const a = db.animaux.find(x => x.id === aid); if (a && a.statut === 'vendu') { a.statut = 'vivant'; a.dateSortie = null; } });
+  db.transactions = db.transactions.filter(x => x.id !== id);
+  toast('Transaction supprimée'); renderAll();
+}
+
+/* =================== STOCKS =================== */
+function openStockForm() {
+  openModal(`
+    <h3>Nouvel article de stock</h3>
+    <form class="grid" onsubmit="saveStock(event)">
+      <div><label class="f">Nom</label><input id="sNom" required placeholder="Ex : Son de blé, Déparasitant…"></div>
+      <div><label class="f">Catégorie</label>
+        <select id="sCat"><option>Aliment</option><option>Médicament</option><option>Matériel</option><option>Autre</option></select></div>
+      <div><label class="f">Unité</label><input id="sUnite" placeholder="sac, kg, litre, dose…" required></div>
+      <div><label class="f">Quantité initiale</label><input type="number" id="sQte" min="0" step="0.1" value="0"></div>
+      <div><label class="f">Seuil d'alerte</label><input type="number" id="sSeuil" min="0" step="0.1" value="0"></div>
+      <div class="full actions" style="display:flex;gap:8px;justify-content:flex-end">
+        <button type="button" class="btn" onclick="closeModal()">Annuler</button>
+        <button type="submit" class="btn primary">Créer</button>
+      </div>
+    </form>`);
+}
+
+function saveStock(e) {
+  e.preventDefault();
+  const g = id => document.getElementById(id);
+  db.stocks.push({
+    id: uid(), nom: g('sNom').value.trim(), categorie: g('sCat').value,
+    unite: g('sUnite').value.trim(), quantite: parseFloat(g('sQte').value || '0'),
+    seuil: parseFloat(g('sSeuil').value || '0')
+  });
+  toast('Article créé'); closeModal(); renderAll();
+}
+
+function openMouvementForm(stockId) {
+  if (!db.stocks.length) { toast("Créez d'abord un article de stock."); return; }
+  openModal(`
+    <h3>Mouvement de stock</h3>
+    <form class="grid" onsubmit="saveMouvement(event)">
+      <div class="full"><label class="f">Article</label>
+        <select id="mStock">${db.stocks.map(s => `<option value="${s.id}" ${s.id===stockId?'selected':''}>${esc(s.nom)} (${esc(s.unite)})</option>`).join('')}</select></div>
+      <div><label class="f">Type</label>
+        <select id="mType"><option value="entree">Entrée (ajout)</option><option value="sortie">Sortie (consommation)</option></select></div>
+      <div><label class="f">Quantité</label><input type="number" id="mQte" min="0.01" step="0.01" required></div>
+      <div><label class="f">Date</label><input type="date" id="mDate" value="${todayISO()}"></div>
+      <div><label class="f">Coût (FCFA, si achat)</label><input type="number" id="mCout" min="0" step="1" placeholder="crée une dépense"></div>
+      <div class="full"><label class="f">Note</label><input id="mNote"></div>
+      <div class="full actions" style="display:flex;gap:8px;justify-content:flex-end">
+        <button type="button" class="btn" onclick="closeModal()">Annuler</button>
+        <button type="submit" class="btn primary">Enregistrer</button>
+      </div>
+    </form>`);
+}
+
+function saveMouvement(e) {
+  e.preventDefault();
+  const g = id => document.getElementById(id);
+  const s = db.stocks.find(x => x.id === g('mStock').value);
+  const type = g('mType').value;
+  const qte = parseFloat(g('mQte').value);
+  if (type === 'sortie' && qte > s.quantite && !confirm('La sortie dépasse la quantité en stock (' + s.quantite + ' ' + s.unite + '). Continuer ?')) return;
+  s.quantite = Math.max(0, s.quantite + (type === 'entree' ? qte : -qte));
+  const date = g('mDate').value || todayISO();
+  const note = g('mNote').value.trim();
+  db.mouvements.push({ id: uid(), stockId: s.id, type, quantite: qte, date, note });
+  const cout = parseInt(g('mCout').value || '0', 10);
+  if (type === 'entree' && cout > 0) {
+    const cat = s.categorie === 'Aliment' ? 'Alimentation' : (s.categorie === 'Médicament' ? 'Santé / vétérinaire' : 'Équipement');
+    db.depenses.push({ id: uid(), date, categorie: cat, libelle: 'Achat stock : ' + s.nom + ' (' + qte + ' ' + s.unite + ')', montant: cout });
+  }
+  toast('Mouvement enregistré'); closeModal(); renderAll();
+}
+
+function delStock(id) {
+  if (!confirm('Supprimer cet article et ses mouvements ?')) return;
+  db.stocks = db.stocks.filter(s => s.id !== id);
+  db.mouvements = db.mouvements.filter(m => m.stockId !== id);
+  renderAll();
+}
+
+function renderStocks() {
+  const t = document.getElementById('tblStocks');
+  if (!db.stocks.length) { t.innerHTML = `<tr><td class="empty">Aucun article. Créez vos aliments, médicaments et matériels.</td></tr>`; }
+  else {
+    t.innerHTML = `<tr><th>Article</th><th>Catégorie</th><th class="num">Quantité</th><th class="num">Seuil</th><th>État</th><th></th></tr>` +
+      db.stocks.map(s => `
+        <tr>
+          <td style="font-weight:600">${esc(s.nom)}</td>
+          <td>${esc(s.categorie)}</td>
+          <td class="num">${fmtN.format(s.quantite)} ${esc(s.unite)}</td>
+          <td class="num">${fmtN.format(s.seuil)}</td>
+          <td>${s.quantite <= s.seuil ? '<span class="badge alerte">⚠ Stock bas</span>' : '<span class="badge vivant">OK</span>'}</td>
+          <td><button class="btn small" onclick="openMouvementForm('${s.id}')">±</button>
+              <button class="btn small danger" onclick="delStock('${s.id}')">✕</button></td>
+        </tr>`).join('');
+  }
+  const tm = document.getElementById('tblMouvements');
+  const mv = [...db.mouvements].sort((a, b) => (b.date || '').localeCompare(a.date || '')).slice(0, 15);
+  if (!mv.length) { tm.innerHTML = `<tr><td class="empty">Aucun mouvement.</td></tr>`; return; }
+  tm.innerHTML = `<tr><th>Date</th><th>Article</th><th>Type</th><th class="num">Quantité</th><th>Note</th></tr>` +
+    mv.map(m => {
+      const s = db.stocks.find(x => x.id === m.stockId);
+      return `<tr><td>${fmtDate(m.date)}</td><td>${s ? esc(s.nom) : '?'}</td>
+        <td>${m.type === 'entree' ? 'Entrée' : 'Sortie'}</td>
+        <td class="num">${m.type === 'entree' ? '+' : '−'}${fmtN.format(m.quantite)} ${s ? esc(s.unite) : ''}</td>
+        <td>${esc(m.note) || '—'}</td></tr>`;
+    }).join('');
+}
+
+/* =================== DEPENSES =================== */
+function addDepense(e) {
+  e.preventDefault();
+  const g = id => document.getElementById(id);
+  db.depenses.push({
+    id: uid(), date: g('dDate').value, categorie: g('dCat').value,
+    libelle: g('dLib').value.trim(), montant: parseInt(g('dMontant').value, 10)
+  });
+  g('dLib').value = ''; g('dMontant').value = '';
+  toast('Dépense ajoutée'); renderAll();
+}
+
+function delDepense(id) {
+  if (!confirm('Supprimer cette dépense ?')) return;
+  db.depenses = db.depenses.filter(d => d.id !== id);
+  renderAll();
+}
+
+function renderDepenses() {
+  const cats = [...new Set(db.depenses.map(d => d.categorie))].sort();
+  const sel = document.getElementById('fDepCat');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">Toutes catégories</option>' + cats.map(c => `<option ${c===cur?'selected':''}>${esc(c)}</option>`).join('');
+  const fc = sel.value, fm = document.getElementById('fDepMois').value;
+  const list = db.depenses
+    .filter(d => (!fc || d.categorie === fc) && (!fm || (d.date || '').startsWith(fm)))
+    .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  const t = document.getElementById('tblDepenses');
+  if (!list.length) { t.innerHTML = `<tr><td class="empty">Aucune dépense.</td></tr>`; }
+  else {
+    t.innerHTML = `<tr><th>Date</th><th>Catégorie</th><th>Libellé</th><th class="num">Montant</th><th></th></tr>` +
+      list.map(d => `<tr><td>${fmtDate(d.date)}</td><td>${esc(d.categorie)}</td><td>${esc(d.libelle)}</td>
+        <td class="num">${F(d.montant)}</td>
+        <td><button class="btn small danger" onclick="delDepense('${d.id}')">✕</button></td></tr>`).join('');
+  }
+  document.getElementById('depTotal').textContent = 'Total affiché : ' + F(list.reduce((s, d) => s + d.montant, 0));
+}
+
+/* =================== MORTALITES =================== */
+function openMortForm(preselect) {
+  const v = vivants();
+  if (!v.length) { toast('Aucun animal vivant.'); return; }
+  openModal(`
+    <h3>Déclarer un décès</h3>
+    <form class="grid" onsubmit="saveMort(event)">
+      <div class="full"><label class="f">Animal</label>
+        <select id="moAnimal">${v.map(a => `<option value="${esc(a.id)}" ${a.id===preselect?'selected':''}>${esc(a.id)} · ${especeLabel(a.espece)} ${a.sexe} ${a.lot ? '· ' + esc(a.lot) : ''}</option>`).join('')}</select></div>
+      <div><label class="f">Date</label><input type="date" id="moDate" value="${todayISO()}" required></div>
+      <div><label class="f">Cause</label>
+        <select id="moCause"><option>Maladie</option><option>Accident</option><option>Prédateur</option><option>Mise bas</option><option>Inconnue</option><option>Autre</option></select></div>
+      <div class="full"><label class="f">Note</label><input id="moNote" placeholder="symptômes, circonstances…"></div>
+      <div class="full actions" style="display:flex;gap:8px;justify-content:flex-end">
+        <button type="button" class="btn" onclick="closeModal()">Annuler</button>
+        <button type="submit" class="btn danger" style="border-color:var(--critical)">Enregistrer le décès</button>
+      </div>
+    </form>`);
+}
+
+function saveMort(e) {
+  e.preventDefault();
+  const g = id => document.getElementById(id);
+  const animalId = g('moAnimal').value;
+  const a = db.animaux.find(x => x.id === animalId);
+  const date = g('moDate').value;
+  a.statut = 'mort'; a.dateSortie = date;
+  db.morts.push({ id: uid(), animalId, date, cause: g('moCause').value, note: g('moNote').value.trim() });
+  toast('Décès de ' + animalId + ' enregistré');
+  closeModal(); renderAll();
+}
+
+function delMort(id) {
+  const m = db.morts.find(x => x.id === id);
+  if (!m) return;
+  if (!confirm('Annuler ce décès ? L\'animal sera remis « vivant ».')) return;
+  const a = db.animaux.find(x => x.id === m.animalId);
+  if (a) { a.statut = 'vivant'; a.dateSortie = null; }
+  db.morts = db.morts.filter(x => x.id !== id);
+  renderAll();
+}
+
+function renderMorts() {
+  const total = db.animaux.length;
+  const nbMorts = db.morts.length;
+  const taux = total ? (nbMorts / total * 100) : 0;
+  const causes = {};
+  db.morts.forEach(m => causes[m.cause] = (causes[m.cause] || 0) + 1);
+  const causePrinc = Object.entries(causes).sort((a, b) => b[1] - a[1])[0];
+  document.getElementById('mortCards').innerHTML = `
+    <div class="card"><div class="label">Décès enregistrés</div><div class="value">${nbMorts}</div></div>
+    <div class="card"><div class="label">Taux de mortalité</div><div class="value">${taux.toFixed(1).replace('.', ',')} %</div><div class="detail">sur ${total} animaux enregistrés</div></div>
+    <div class="card"><div class="label">Cause principale</div><div class="value" style="font-size:20px">${causePrinc ? esc(causePrinc[0]) : '—'}</div><div class="detail">${causePrinc ? causePrinc[1] + ' cas' : ''}</div></div>`;
+  const t = document.getElementById('tblMorts');
+  const list = [...db.morts].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  if (!list.length) { t.innerHTML = `<tr><td class="empty">Aucun décès enregistré. Pourvu que ça dure !</td></tr>`; return; }
+  t.innerHTML = `<tr><th>Date</th><th>Animal</th><th>Espèce</th><th>Cause</th><th>Note</th><th></th></tr>` +
+    list.map(m => {
+      const a = db.animaux.find(x => x.id === m.animalId);
+      return `<tr><td>${fmtDate(m.date)}</td>
+        <td style="font-weight:600">${esc(m.animalId)}</td>
+        <td>${a ? especeLabel(a.espece) : '—'}</td>
+        <td>${esc(m.cause)}</td><td>${esc(m.note) || '—'}</td>
+        <td><button class="btn small danger" onclick="delMort('${m.id}')">✕</button></td></tr>`;
+    }).join('');
+}
+
+/* =================== TABLEAU DE BORD =================== */
+function renderDash() {
+  const viv = vivants();
+  const nbM = viv.filter(a => a.espece === 'mouton').length;
+  const nbC = viv.filter(a => a.espece === 'chevre').length;
+  const nbF = viv.filter(a => a.sexe === 'F').length;
+  const ventes = db.transactions.filter(t => t.type === 'vente').reduce((s, t) => s + t.montant, 0);
+  const achats = db.transactions.filter(t => t.type === 'achat').reduce((s, t) => s + t.montant, 0);
+  const dep = db.depenses.reduce((s, d) => s + d.montant, 0);
+  const totalDep = achats + dep;
+  const solde = ventes - totalDep;
+  document.getElementById('dashCards').innerHTML = `
+    <div class="card"><div class="label">Effectif vivant</div><div class="value">${viv.length}</div>
+      <div class="detail">${nbM} mouton(s) · ${nbC} chèvre(s) · ${nbF} femelle(s)</div></div>
+    <div class="card"><div class="label">Ventes cumulées</div><div class="value pos">${F(ventes)}</div></div>
+    <div class="card"><div class="label">Dépenses cumulées</div><div class="value">${F(totalDep)}</div>
+      <div class="detail">dont ${F(achats)} d'achats d'animaux</div></div>
+    <div class="card"><div class="label">Solde</div><div class="value ${solde >= 0 ? 'pos' : 'neg'}">${F(solde)}</div>
+      <div class="detail">ventes − toutes dépenses</div></div>
+    <div class="card"><div class="label">Mortalités</div><div class="value">${db.morts.length}</div>
+      <div class="detail">${db.animaux.length ? (db.morts.length / db.animaux.length * 100).toFixed(1).replace('.', ',') + ' % du troupeau' : ''}</div></div>`;
+  renderChart();
+  renderStockAlerts();
+  document.getElementById('emptyStatePanel').style.display =
+    (db.animaux.length || db.depenses.length || db.stocks.length) ? 'none' : 'block';
+}
+
+function renderStockAlerts() {
+  const alerts = db.stocks.filter(s => s.quantite <= s.seuil && s.seuil > 0);
+  const p = document.getElementById('stockAlertPanel');
+  if (!alerts.length) { p.style.display = 'none'; return; }
+  p.style.display = 'block';
+  p.innerHTML = `<h2>⚠ Alertes de stock</h2>` + alerts.map(s =>
+    `<div class="small" style="padding:4px 0"><span class="badge alerte">Stock bas</span>
+     <strong>${esc(s.nom)}</strong> — reste ${fmtN.format(s.quantite)} ${esc(s.unite)} (seuil : ${fmtN.format(s.seuil)})</div>`).join('');
+}
+
+/* ---- Graphique mensuel (SVG) ---- */
+const MOIS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+let chartData = [];
+
+function monthKey(d) { return d.slice(0, 7); }
+
+function renderChart() {
+  const now = new Date();
+  chartData = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    const label = MOIS[d.getMonth()] + ' ' + String(d.getFullYear()).slice(2);
+    const v = db.transactions.filter(t => t.type === 'vente' && monthKey(t.date || '') === key).reduce((s, t) => s + t.montant, 0);
+    const dp = db.depenses.filter(x => monthKey(x.date || '') === key).reduce((s, x) => s + x.montant, 0)
+             + db.transactions.filter(t => t.type === 'achat' && monthKey(t.date || '') === key).reduce((s, t) => s + t.montant, 0);
+    chartData.push({ key, label, ventes: v, depenses: dp });
+  }
+  const W = 640, H = 250, padL = 8, padR = 8, padT = 22, padB = 26;
+  const innerW = W - padL - padR, innerH = H - padT - padB;
+  const max = Math.max(1, ...chartData.flatMap(m => [m.ventes, m.depenses]));
+  const groupW = innerW / 6;
+  const barW = Math.min(26, groupW * 0.28);
+  const css = getComputedStyle(document.documentElement);
+  let svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Ventes et dépenses par mois" style="display:block">`;
+  for (let g = 1; g <= 3; g++) {
+    const y = padT + innerH - innerH * g / 3;
+    svg += `<line x1="${padL}" x2="${W - padR}" y1="${y}" y2="${y}" stroke="var(--grid)" stroke-width="1"/>`;
+    svg += `<text x="${padL}" y="${y - 4}" font-size="10" fill="var(--ink-muted)">${fmtN.format(Math.round(max * g / 3 / 1000) * 1000)}</text>`;
+  }
+  svg += `<line x1="${padL}" x2="${W - padR}" y1="${padT + innerH}" y2="${padT + innerH}" stroke="var(--baseline)" stroke-width="1"/>`;
+  chartData.forEach((m, i) => {
+    const cx = padL + groupW * i + groupW / 2;
+    const hV = innerH * m.ventes / max, hD = innerH * m.depenses / max;
+    const yV = padT + innerH - hV, yD = padT + innerH - hD;
+    svg += barPath(cx - barW - 1, yV, barW, hV, 'var(--series-1)');
+    svg += barPath(cx + 1, yD, barW, hD, 'var(--series-2)');
+    svg += `<text x="${cx}" y="${H - 8}" font-size="11" fill="var(--ink-muted)" text-anchor="middle">${m.label}</text>`;
+    svg += `<rect data-mi="${i}" x="${padL + groupW * i}" y="${padT}" width="${groupW}" height="${innerH}" fill="transparent" style="cursor:default"/>`;
+  });
+  svg += `</svg>`;
+  const box = document.getElementById('chart');
+  box.innerHTML = svg;
+  box.querySelectorAll('rect[data-mi]').forEach(r => {
+    r.addEventListener('mousemove', ev => showChartTip(ev, parseInt(r.dataset.mi, 10)));
+    r.addEventListener('mouseleave', hideChartTip);
+  });
+  document.getElementById('chartTable').innerHTML =
+    `<tr><th>Mois</th><th class="num">Ventes</th><th class="num">Dépenses</th></tr>` +
+    chartData.map(m => `<tr><td>${m.label}</td><td class="num">${F(m.ventes)}</td><td class="num">${F(m.depenses)}</td></tr>`).join('');
+}
+
+function barPath(x, y, w, h, fill) {
+  if (h <= 0) return '';
+  const r = Math.min(4, h, w / 2);
+  return `<path d="M${x},${y + h} L${x},${y + r} Q${x},${y} ${x + r},${y} L${x + w - r},${y} Q${x + w},${y} ${x + w},${y + r} L${x + w},${y + h} Z" fill="${fill}"/>`;
+}
+
+function showChartTip(ev, i) {
+  const m = chartData[i];
+  const tip = document.getElementById('chartTip');
+  tip.innerHTML = `<div class="t">${m.label}</div>
+    <div class="row"><span class="k"><span class="swatch" style="width:9px;height:9px;border-radius:2px;display:inline-block;background:var(--series-1)"></span>Ventes</span><span class="v">${F(m.ventes)}</span></div>
+    <div class="row"><span class="k"><span class="swatch" style="width:9px;height:9px;border-radius:2px;display:inline-block;background:var(--series-2)"></span>Dépenses</span><span class="v">${F(m.depenses)}</span></div>`;
+  tip.style.display = 'block';
+  const box = tip.parentElement.getBoundingClientRect();
+  let x = ev.clientX - box.left + 14, y = ev.clientY - box.top - 10;
+  if (x + tip.offsetWidth > box.width) x = x - tip.offsetWidth - 28;
+  tip.style.left = x + 'px'; tip.style.top = y + 'px';
+}
+function hideChartTip() { document.getElementById('chartTip').style.display = 'none'; }
+
+/* =================== EXPORT / IMPORT =================== */
+function download(filename, content, type) {
+  const blob = new Blob([content], { type: type || 'application/octet-stream' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 300);
+}
+
+function exportJSON() {
+  download('ferme-sauvegarde-' + todayISO() + '.json', JSON.stringify(db, null, 2), 'application/json');
+  toast('Sauvegarde exportée ✓');
+}
+
+function importJSON(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      if (!data || !Array.isArray(data.animaux)) throw new Error('format');
+      db = Object.assign({ version: 1, animaux: [], transactions: [], depenses: [], stocks: [], mouvements: [], morts: [] }, data);
+      seq = 1000 + db.transactions.length + db.depenses.length + db.stocks.length;
+      toast('Sauvegarde importée ✓ (' + db.animaux.length + ' animaux)');
+      renderAll();
+    } catch (err) {
+      alert("Fichier invalide. Utilisez un fichier exporté par cette application.");
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+function csvEscape(v) {
+  const s = String(v == null ? '' : v);
+  return /[";\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+function toCSV(rows) { return '﻿' + rows.map(r => r.map(csvEscape).join(';')).join('\n'); }
+
+function exportCSV(what) {
+  let rows;
+  if (what === 'animaux') {
+    rows = [['ID', 'Espèce', 'Sexe', 'Race', 'Date naissance', 'Poids kg', 'Lot', 'Origine', 'Prix achat FCFA', 'Date entrée', 'Statut', 'Date sortie', 'Notes']];
+    db.animaux.forEach(a => rows.push([a.id, especeLabel(a.espece), a.sexe, a.race, a.dateNaissance, a.poids, a.lot, a.origine, a.prixAchat, a.dateEntree, a.statut, a.dateSortie, a.notes]));
+  } else if (what === 'transactions') {
+    rows = [['Date', 'Type', 'Animaux', 'Montant FCFA', 'Contrepartie', 'Notes']];
+    db.transactions.forEach(t => rows.push([t.date, t.type, (t.animalIds || []).join(' '), t.montant, t.contrepartie, t.notes]));
+  } else if (what === 'depenses') {
+    rows = [['Date', 'Catégorie', 'Libellé', 'Montant FCFA']];
+    db.depenses.forEach(d => rows.push([d.date, d.categorie, d.libelle, d.montant]));
+  } else if (what === 'stocks') {
+    rows = [['Article', 'Catégorie', 'Unité', 'Quantité', 'Seuil']];
+    db.stocks.forEach(s => rows.push([s.nom, s.categorie, s.unite, s.quantite, s.seuil]));
+  } else {
+    rows = [['Date', 'Animal', 'Cause', 'Note']];
+    db.morts.forEach(m => rows.push([m.date, m.animalId, m.cause, m.note]));
+  }
+  download('ferme-' + what + '-' + todayISO() + '.csv', toCSV(rows), 'text/csv;charset=utf-8');
+  toast('CSV exporté ✓');
+}
+
+function resetAll() {
+  if (!confirm('Tout effacer ? Cette action est irréversible. Pensez à exporter avant.')) return;
+  db = { version: 1, animaux: [], transactions: [], depenses: [], stocks: [], mouvements: [], morts: [] };
+  toast('Données effacées'); renderAll();
+}
+
+/* =================== DONNÉES D'EXEMPLE =================== */
+function loadSample() {
+  const now = new Date();
+  const iso = (mOffset, day) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - mOffset, day);
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(Math.min(day, 28)).padStart(2, '0');
+  };
+  db = { version: 1, animaux: [], transactions: [], depenses: [], stocks: [], mouvements: [], morts: [] };
+  const mk = (id, espece, sexe, race, lot, origine, prix, entree, statut, sortie) =>
+    db.animaux.push({ id, espece, sexe, race, dateNaissance: null, poids: null, lot, origine, prixAchat: prix, dateEntree: entree, statut, dateSortie: sortie || null, notes: '' });
+  mk('M-001', 'mouton', 'F', 'Djallonké', 'Reproduction', 'achat', 45000, iso(5, 10), 'vivant');
+  mk('M-002', 'mouton', 'F', 'Djallonké', 'Reproduction', 'achat', 45000, iso(5, 10), 'vivant');
+  mk('M-003', 'mouton', 'M', 'Bali-Bali', 'Embouche', 'achat', 60000, iso(4, 5), 'vendu', iso(1, 20));
+  mk('M-004', 'mouton', 'M', 'Bali-Bali', 'Embouche', 'achat', 62000, iso(4, 5), 'vivant');
+  mk('M-005', 'mouton', 'F', 'Djallonké', 'Reproduction', 'naissance', 0, iso(2, 15), 'vivant');
+  mk('C-001', 'chevre', 'F', 'Sahélienne', 'Reproduction', 'achat', 30000, iso(5, 12), 'vivant');
+  mk('C-002', 'chevre', 'F', 'Sahélienne', 'Reproduction', 'achat', 30000, iso(5, 12), 'mort', iso(2, 8));
+  mk('C-003', 'chevre', 'M', 'Sahélienne', 'Embouche', 'achat', 25000, iso(3, 2), 'vivant');
+  mk('C-004', 'chevre', 'F', 'Rousse de Maradi', '', 'naissance', 0, iso(1, 25), 'vivant');
+  db.transactions.push(
+    { id: uid(), type: 'achat', date: iso(5, 10), animalIds: ['M-001', 'M-002'], montant: 90000, contrepartie: 'Marché de bétail', notes: 'Brebis reproductrices' },
+    { id: uid(), type: 'achat', date: iso(5, 12), animalIds: ['C-001', 'C-002'], montant: 60000, contrepartie: 'Marché de bétail', notes: '' },
+    { id: uid(), type: 'achat', date: iso(4, 5), animalIds: ['M-003', 'M-004'], montant: 122000, contrepartie: '', notes: 'Béliers pour embouche' },
+    { id: uid(), type: 'achat', date: iso(3, 2), animalIds: ['C-003'], montant: 25000, contrepartie: '', notes: '' },
+    { id: uid(), type: 'vente', date: iso(1, 20), animalIds: ['M-003'], montant: 95000, contrepartie: 'Client Tabaski', notes: 'Bélier engraissé' }
+  );
+  db.depenses.push(
+    { id: uid(), date: iso(4, 8), categorie: 'Alimentation', libelle: '10 sacs de son de blé', montant: 35000 },
+    { id: uid(), date: iso(3, 15), categorie: 'Santé / vétérinaire', libelle: 'Vaccination PPR (9 têtes)', montant: 9000 },
+    { id: uid(), date: iso(2, 4), categorie: 'Alimentation', libelle: 'Bottes de fane d\'arachide', montant: 20000 },
+    { id: uid(), date: iso(1, 10), categorie: 'Équipement', libelle: 'Abreuvoirs et mangeoires', montant: 15000 },
+    { id: uid(), date: iso(0, 3), categorie: 'Alimentation', libelle: '5 sacs de son', montant: 17500 },
+    { id: uid(), date: iso(0, 5), categorie: 'Santé / vétérinaire', libelle: 'Déparasitant', montant: 6000 }
+  );
+  db.stocks.push(
+    { id: uid(), nom: 'Son de blé', categorie: 'Aliment', unite: 'sac', quantite: 4, seuil: 3 },
+    { id: uid(), nom: 'Fane d\'arachide', categorie: 'Aliment', unite: 'botte', quantite: 25, seuil: 10 },
+    { id: uid(), nom: 'Déparasitant', categorie: 'Médicament', unite: 'dose', quantite: 12, seuil: 5 }
+  );
+  db.mouvements.push(
+    { id: uid(), stockId: db.stocks[0].id, type: 'entree', quantite: 5, date: iso(0, 3), note: 'Achat' },
+    { id: uid(), stockId: db.stocks[0].id, type: 'sortie', quantite: 1, date: iso(0, 6), note: 'Ration semaine' }
+  );
+  db.morts.push({ id: uid(), animalId: 'C-002', date: iso(2, 8), cause: 'Maladie', note: 'Diarrhée persistante' });
+  toast('Données d\'exemple chargées');
+  renderAll();
+}
+
+/* =================== RENDER GLOBAL =================== */
+function renderAll() {
+  renderDash();
+  renderAnimaux();
+  renderVentes();
+  renderStocks();
+  renderDepenses();
+  renderMorts();
+}
+
+document.getElementById('dDate').value = todayISO();
+renderAll();
+</script>
+</body>
+</html>
